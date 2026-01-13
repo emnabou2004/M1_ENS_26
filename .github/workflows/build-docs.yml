@@ -30,7 +30,7 @@ jobs:
       - name: Build Lean docs
         run: |
           cd docbuild
-          lake build
+          lake build M1ENS26:docs
 
       - name: Commit generated docs
         run: |
