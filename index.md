@@ -15,7 +15,7 @@ Les cours ont lieu de 13h30 à 16h30  selon le calendrier suivant:
 
 | Date      | Cours         | Fichiers annexes | Notes
 |-----------|---------------|---------------|---------------
-| 3 février | Tactiques et Types | |
+| 3 février | Tactiques et Types | [Fichier Lean](https://github.com/faenuccio-teaching/M1_ENS_26/blob/master/M1ENS26/1_Tactics%26Types.lean) et [MarkDown](https://github.com/faenuccio-teaching/M1_ENS_26/blob/master/M1ENS26/1_Tactics%26Types_lecture.md)|
 | 5 février | Types (2) | |
 | 10 février | Algèbre | |
 | 17 février | Topologie | |
