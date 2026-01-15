@@ -1,4 +1,5 @@
 title: Cours Avancé pour le M1 du DMA de l'ENS-Paris, (2026).
+description: ""
 
 url: https://faenuccio-teaching.github.io
 baseurl: "/M1_ENS_26"
@@ -16,6 +17,4 @@ keep_files:
   - docbuild
 
 # Sidebar links
-show_downloads: false
-
-description: ""
+show_downloads: true
