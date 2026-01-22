@@ -174,9 +174,19 @@ example : (Subgroup.center G).Normal := by
 
 -- `⌘`
 
+-- `simpa`
 example (N : Subgroup G) [N.Normal] (x y : G) : (x : G ⧸ N) = (y : G ⧸ N) ↔ x * y⁻¹ ∈ N := by
   refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
-  · simp
+  · rw [QuotientGroup.eq] at h
+    rw [← inv_inv x, ← mul_inv_rev]
+    apply Subgroup.inv_mem
+    rw [Subgroup.Normal.mem_comm_iff]
+    exact h
+    assumption
+  · rw [QuotientGroup.eq, ← inv_inv y, ← mul_inv_rev]
+    apply Subgroup.inv_mem
+    simpa [Subgroup.Normal.mem_comm_iff]
+
 
 
 -- ### Group homomorphisms
