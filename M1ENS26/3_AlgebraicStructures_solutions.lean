@@ -1,8 +1,7 @@
 import Mathlib
 
-section Groups
 
--- ## Bad Ideas
+-- ## Painful examples
 
 example {G : Type*} [Group G] (g e : G) (h : g * e = g) : e = 1 := by
   calc e = 1 * e := by rw [one_mul]
@@ -22,24 +21,28 @@ example {G : Type*} [CommGroup G] (N : Subgroup G) : CommGroup (G ⧸ N) := by
   apply CommGroup.mul_comm
   -- exact QuotientGroup.Quotient.commGroup N
 
+-- Can you understand the error message?
 lemma quotComm_lemma {G : Type*} [Group G] (N : Subgroup G) : CommGroup (G ⧸ N) := by sorry
 
-def quotComm_def {G : Type*} [Group G] (N : Subgroup G) : CommGroup (G ⧸ N) := by sorry
+-- This is false, but at least it compiles
+def quotComm_def {G : Type*} [Group G] (N : Subgroup G) : Group (G ⧸ N) := by sorry
+
 
 lemma unit_surj (A B : Type*) [CommRing A] [CommRing B] {f : A →+* B} (a : Aˣ) : IsUnit (f a) := by
   rcases a with ⟨u, v, huv, hvu⟩
-  rw [isUnit_iff_exists]
+  rw [isUnit_iff_exists] -- very strange lemma
   refine ⟨f v, ?_, ?_⟩
   · simp [← map_mul, huv]
   · simp [← map_mul, hvu]
 
 -- `⌘`
 
--- ## Basic facts about groups
+section Groups
 
--- ### Definitions, basic properties and some tactics
+-- ### A wrong way to define structures
+
 structure WrongGroup where
-  carrier : Type _
+  carrier : Type*
   one : carrier
   mul : carrier → carrier → carrier
   inv : carrier → carrier
@@ -47,9 +50,6 @@ structure WrongGroup where
   one_mul : ∀ (x : carrier), mul one x = x
   mul_assoc : ∀ (x y z : carrier), mul (mul x y) z = mul x (mul y z)
   inv_mul_cancel : ∀ (x : carrier), mul (inv x) x = one
--- You might want to put one more condition called `mul_inv_cancel`, but we can
--- actually prove it from the others.
-
 
 lemma WrongGroup.inv_eq_of_mul {α : WrongGroup} (x y : α.carrier) :
     α.mul x y = α.one → α.inv x = y := by
@@ -59,33 +59,56 @@ lemma WrongGroup.inv_eq_of_mul {α : WrongGroup} (x y : α.carrier) :
   rw [α.mul_one, ← α.mul_assoc, α.inv_mul_cancel, α.one_mul] at h
   exact h.symm
 
-lemma WrongGroup.mul_inv_cancel {α : WrongGroup} (x : α.carrier) :
-    α.mul x (α.inv x) = α.one := by
-  rw [← α.inv_mul_cancel (α.inv x), α.inv_eq_of_mul _ _ (α.inv_mul_cancel x)]
+structure WrongSemigroup where
+  carrier : Type*
+  mul : carrier → carrier → carrier
+  mul_assoc : ∀ (x y z : carrier), mul (mul x y) z = mul x (mul y z)
+
+
+lemma assoc_mul (X : WrongSemigroup) (x y z w : X.carrier) :
+    X.mul x (X.mul (X.mul y z) w) = X.mul (X.mul x y) (X.mul z w) := by
+  rw [X.mul_assoc]
+  rw [X.mul_assoc]
+
+lemma assoc_mul' (G : WrongGroup) (x y z w : G.carrier) :
+    G.mul x (G.mul (G.mul y z) w) = G.mul (G.mul x y) (G.mul z w) := by
+  -- apply assoc_mul -- it does not work!
+  simp[G.mul_assoc]
+
+def Nplus : WrongSemigroup where
+  carrier := ℕ
+  mul := (· + ·) -- or fun x y ↦ x + y
+  mul_assoc := add_assoc
+
+example : Nplus.mul (1 : ℕ) (1 : ℕ) = (2 : ℕ) := rfl
+example : Nplus.mul 1 1 = 2 := rfl
+
+-- `⌘`
+
+-- ### A good way to define structures
 
 #print Group
--- class Group (G : Type*) extends DivInvMonoid G where
---   protected inv_mul_cancel : ∀ a : G, a⁻¹ * a = 1
+-- but right-clicking on it yields
+structure Group_at_ENS (G : Type*) extends DivInvMonoid G where
+  protected inv_mul_cancel : ∀ a : G, a⁻¹ * a = 1
 
 #print DivInvMonoid
 
 example {G : Type*} [Group G] (x y z : G) : x * (y * z) * (x * z)⁻¹ * (x * y * x⁻¹)⁻¹ = 1 := by
   group
 
+#print CommGroup
+-- but right-clicking on it yields
+structure CommGroup_at_ENS (G : Type*) extends Group G, CommMonoid G
+
 example {G : Type*} [CommGroup G] (x y : G) : (x * y)⁻¹ = x⁻¹ * y⁻¹ := by
   -- group
   rw [mul_inv_rev, mul_comm]
   -- rw [mul_inv]
 
-example {A : Type*} [AddGroup A] (x y : A) : x + y + 0 = x + y := by
-  -- group
-  simp
-
 example {A : Type*} [AddCommGroup A] (x y : A) : x + y + 0 = x + y := by
   abel
 
-
-#check mul_assoc
 -- whatsnew in
 -- @[to_additive]
 lemma mul_square {G : Type*} [Group G] {x y : G} (h : x * y = 1) : x * y ^ 2 = y := by
@@ -94,16 +117,23 @@ lemma mul_square {G : Type*} [Group G] {x y : G} (h : x * y = 1) : x * y ^ 2 = y
   rw [h]
   group
 
-example {A : Type*} [AddGroup A] {a b : A} (h : a + b = 0) : a + 2 • b = b := by
-  -- exact add_even h
-  rw [two_nsmul, ← add_assoc, h]
-  simp
+-- actually `mul_assoc` does not only work for groups.
+#check mul_assoc
 
 -- `⌘`
 
 -- ## Classes
 
--- What's going on here?!?!
+example {A : Type*} [AddGroup A] (x y : A) : x + y + 0 = x + y := by
+  -- group
+  simp
+
+example {A : Type*} [AddGroup A] {a b : A} (h : a + b = 0) : a + 2 • b = b := by
+  -- exact add_even h
+  rw [two_nsmul, ← add_assoc, h]
+  simp
+
+-- What's going on here?
 example (G : Type*) [Group G] [CommGroup G] (g : G) : 1 * g = g := by
   rw [one_mul]
 
@@ -233,6 +263,10 @@ section Rings
 end Rings
 
 section Exercises
+
+lemma WrongGroup.mul_inv_cancel {α : WrongGroup} (x : α.carrier) :
+    α.mul x (α.inv x) = α.one := by
+  rw [← α.inv_mul_cancel (α.inv x), α.inv_eq_of_mul _ _ (α.inv_mul_cancel x)]
 
 -- Why is the following example broken? Fix its statement, then prove it.
 example (G : Type*) [Group G] (H₁ H₂ : Subgroup G) : Subgroup (H₁ ∩ H₂) := sorry
