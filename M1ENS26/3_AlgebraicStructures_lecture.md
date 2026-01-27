@@ -107,8 +107,6 @@ The definition of subgroups is slightly different from that of a group, it relie
 ```
 structure Subgroup (G : Type*) [Group G] extends Submonoid G : Type*
 
-A subgroup of a group G is a subset containing 1, closed under multiplication and closed under multiplicative inverse.
-
     carrier : Set G
     mul_mem' {a b : G} : a ∈ self.carrier → b ∈ self.carrier → a * b ∈ self.carrier
     one_mem' : 1 ∈ self.carrier

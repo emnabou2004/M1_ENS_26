@@ -235,27 +235,23 @@ example (N : Subgroup G) [N.Normal] (x y : G) : (x : G ⧸ N) = (y : G ⧸ N) �
     apply Subgroup.inv_mem
     simpa [Subgroup.Normal.mem_comm_iff]
 
-
 @[ext]
-structure MonoidHom₁ (M N : Type*) [Monoid M] [Monoid N] where
+structure MonoidHom_ENS (M N : Type*) [Monoid M] [Monoid N] where
 -- We use the mathlib classes now.
   toFun : M → N
   map_one : toFun 1 = 1
   map_mul : ∀ (x y : M), toFun (x * y) = (toFun x) * (toFun y)
 
--- Not the @[ext] tag.
-#check MonoidHom₁.ext
+-- Note the @[ext] tag.
+#check MonoidHom.ext
 
-def f : MonoidHom₁ (ℕ × ℕ) ℕ where
+def f : MonoidHom_ENS (ℕ × ℕ) ℕ where
   toFun p := p.1 * p.2
   map_one := by simp only [Prod.fst_one, Prod.snd_one, mul_one]
-  map_mul p p' := by simp only [Prod.fst_mul, Prod.snd_mul]; ring
+  map_mul _ _ := by simp only [Prod.fst_mul, Prod.snd_mul]; group
 
--- Add `f.ker`!!!
-
-/-
 #check f ⟨2,3⟩ -- we can't apply a `MonoidHom₁` to an element, which is annoying
--/
+
 
 #check f.toFun ⟨2,3⟩
 #eval! f.toFun ⟨2,3⟩
@@ -267,12 +263,35 @@ functions.-/
 #print CoeFun
 
 instance {G H : Type*} [Monoid G] [Monoid H] :
-    CoeFun (MonoidHom₁ G H) (fun _ ↦ G → H) where
-  coe := MonoidHom₁.toFun
+    CoeFun (MonoidHom_ENS G H) (fun _ ↦ G → H) where
+  coe := MonoidHom_ENS.toFun
 
 #check f ⟨2,3⟩
 
+example (G₁ : Type) [CommGroup G₁] (f : G →* G₁) : ∀ x y : G, x * y = 1 → (f x) * (f y) = 1 := by
+  intro x y h
+  rw [← map_mul, h, map_one]
 
+example (A : Type) [AddGroup A] (f : G →* A) : ∀ x y : G, x * y = 1 → (f x) * (f y) = 1 := by sorry
+
+open Function in
+example (A : Type*) [AddGroup A] (f : A →+ ℤ) (hf : 1 ∈ f.range) : Surjective f := sorry
+
+
+
+open Function in
+example (A B : Type*) [AddGroup A] [AddGroup B] (f : A →+ B) : Injective f ↔ f.ker = ⊥ := by
+    -- (f.ker_eq_bot_iff).symm
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · rw [AddSubgroup.eq_bot_iff_forall]
+    intro x hx
+    apply h
+    rw [hx, map_zero]
+  · rw [AddSubgroup.eq_bot_iff_forall] at h
+    intro x y hxy
+    rw [← sub_eq_zero] at hxy ⊢
+    apply h (x - y)
+    rwa [AddMonoidHom.mem_ker, map_sub]
 
 end Groups
 
