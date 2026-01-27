@@ -128,6 +128,18 @@ example {A : Type*} [AddGroup A] (x y : A) : x + y + 0 = x + y := by
   -- group
   simp
 
+#print HAdd
+-- @[inherit_doc] infixl:65 " + "   => HAdd.hAdd
+
+#synth Group ℤ
+#synth AddGroup ℤ
+#synth AddGroup (ℤ × ℤ)
+
+#print One
+#synth One ℤ
+
+example : AddGroup ℤ := inferInstance
+
 example {A : Type*} [AddGroup A] {a b : A} (h : a + b = 0) : a + 2 • b = b := by
   -- exact add_even h
   rw [two_nsmul, ← add_assoc, h]
@@ -137,40 +149,45 @@ example {A : Type*} [AddGroup A] {a b : A} (h : a + b = 0) : a + 2 • b = b := 
 example (G : Type*) [Group G] [CommGroup G] (g : G) : 1 * g = g := by
   rw [one_mul]
 
-instance : CoeSort WrongGroup (Type) where
-  coe := (·.carrier)
+-- #### The `Coe` class
+#check Complex.exp_add_pi_mul_I (3/2 : ℚ)
 
 -- Anonymous function def!
-instance : Coe WrongGroup (Type ) where
+instance : Coe WrongGroup Type where
   coe := (·.carrier)
+
+-- instance : CoeSort WrongGroup Type where
+--   coe := (·.carrier)
+
 
 example {α : WrongGroup} (x : α) :
     α.mul x (α.inv x) = α.one := by
   rw [← α.inv_mul_cancel (α.inv x), α.inv_eq_of_mul _ _ (α.inv_mul_cancel x)]
 
+-- instance : Add Bool where
+--   add b₁ b₂ := b₁ && b₂
 
+example : true + false = false := by rfl
+
+-- `⌘`
 
 -- ### More about groups
 
 variable (G : Type*) [Group G]
 
-/- Now for the group structure on subgroups.
+-- #### Subgroups
+example (H : Subgroup G) : Group H := inferInstance
 
-We have an automatic coercion from sets to types, so we get a coercion
-from subgroups to types:
--/
+variable (H : Subgroup G) in
+#synth Group H
 
+/- We have an automatic coercion from sets to types, so we get a coercion
+from subgroups to types: -/
+example (H : Subgroup G) (x : H) (hx : x = 1) : (x : G) = 1 := by
+  simpa [OneMemClass.coe_eq_one]
 
 example (H : Subgroup G) : 1 ∈ H := H.one_mem   -- elements of a subgroup
 
--- This looks stupid but it is not!
-example (H : Subgroup G) (x : H) : (1 : G) = (1 : H) := by sorry
-  -- set x' : G := x.1
-  -- set x'' : G := x.val
-  -- set x''' : G := (x : G)
-  -- have xprop := x.2
-  -- have xprop' := x.property
-  -- rfl
 
 -- What happens if one writes `AddSubgroup ℤ`? And how can we populate the fields automatically?
 example : AddSubgroup ℤ where
@@ -204,22 +221,21 @@ example : (Subgroup.center G).Normal := by
 
 -- `⌘`
 
+-- #### Quotients and homomorphisms
+
 -- `simpa`
 example (N : Subgroup G) [N.Normal] (x y : G) : (x : G ⧸ N) = (y : G ⧸ N) ↔ x * y⁻¹ ∈ N := by
   refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
   · rw [QuotientGroup.eq] at h
     rw [← inv_inv x, ← mul_inv_rev]
     apply Subgroup.inv_mem
-    rw [Subgroup.Normal.mem_comm_iff]
-    exact h
+    rwa [Subgroup.Normal.mem_comm_iff]
     assumption
   · rw [QuotientGroup.eq, ← inv_inv y, ← mul_inv_rev]
     apply Subgroup.inv_mem
     simpa [Subgroup.Normal.mem_comm_iff]
 
 
-
--- ### Group homomorphisms
 @[ext]
 structure MonoidHom₁ (M N : Type*) [Monoid M] [Monoid N] where
 -- We use the mathlib classes now.
@@ -234,6 +250,8 @@ def f : MonoidHom₁ (ℕ × ℕ) ℕ where
   toFun p := p.1 * p.2
   map_one := by simp only [Prod.fst_one, Prod.snd_one, mul_one]
   map_mul p p' := by simp only [Prod.fst_mul, Prod.snd_mul]; ring
+
+-- Add `f.ker`!!!
 
 /-
 #check f ⟨2,3⟩ -- we can't apply a `MonoidHom₁` to an element, which is annoying
@@ -268,14 +286,16 @@ lemma WrongGroup.mul_inv_cancel {α : WrongGroup} (x : α.carrier) :
     α.mul x (α.inv x) = α.one := by
   rw [← α.inv_mul_cancel (α.inv x), α.inv_eq_of_mul _ _ (α.inv_mul_cancel x)]
 
--- Why is the following example broken? Fix its statement, then prove it.
+/- ¶ Exercice
+Why is the following example broken? Fix its statement, then prove it. -/
 example (G : Type*) [Group G] (H₁ H₂ : Subgroup G) : Subgroup (H₁ ∩ H₂) := sorry
 
 
 example (A : Type*) [AddCommGroup A] (N : AddSubgroup A) [N.Normal] (x y : A) :
     (x : A ⧸ N) = (y : A ⧸ N) ↔ y - x ∈ N := sorry
 
-/- Define the integers `ℤ` as a subgroup of the rationals `ℚ`: we'll see next time how to construct
+/- ¶ Exercice
+Define the integers `ℤ` as a subgroup of the rationals `ℚ`: we'll see next time how to construct
 (sub)sets, for the time being use `Set.range ((↑) : ℤ → ℚ)` , by copy-pasting it, as carrier. -/
 example : AddSubgroup ℚ where
   carrier := Set.range ((↑) : ℤ → ℚ)
@@ -291,6 +311,37 @@ example : AddSubgroup ℚ where
     use -n
     simp
 
+/- ¶ Exercice
+State and prove that every subgroup of a commutative group is normal: even if you find a one-line
+proof, try to produce the whole term. -/
+example (G : Type*) [CommGroup G] (H : Subgroup G) : H.Normal where
+  conj_mem x hx g := by rwa [mul_comm, ← mul_assoc, inv_mul_cancel, one_mul]
+  -- infer_instance
+  -- exact Subgroup.normal_of_comm H
+
+
+/- ¶ Exercice
+State and prove that in every additive group, the intersection of two normal subgroups is normal:
+even if you find a one-line proof, try to produce the whole term. For reasons to be explained later,
+the intersection is written `⊓` and types as `\inf`. -/
+example (A : Type*) [AddGroup A] (H K : AddSubgroup A) :
+    H.Normal → K.Normal → (H ⊓ K).Normal := by
+  -- apply AddSubgroup.normal_inf_normal
+  intro hH hK
+  constructor
+  rintro n ⟨hnH, hnK⟩ g
+  exact ⟨hH.conj_mem n hnH g, hK.conj_mem n hnK g⟩
+
+
+/- ¶ Exercice
+State and that the kernel of every group homomorphism is normal: even if you find a one-line proof,
+try to produce the whole term. -/
+example (G₁ G₂ : Type*) [Group G₁] [Group G₂] (f : G₁ →* G₂) : (f.ker).Normal := sorry
+
+/- ¶ Exercice
+State and that a group is commutative if and only if the map `x ↦ x⁻¹` is a group homomorphism:
+even if you find a one-line proof, try to produce the whole term. To get `⁻¹`, type `\-1`. -/
+example
 
 
 end Exercises

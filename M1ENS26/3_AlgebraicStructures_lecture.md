@@ -49,7 +49,7 @@ Suppose we've already defined a structure `PoorStructure` with fields `firstfiel
       rth_field : rth_Type
   ```
 
-+++ In details (to be read at home...)
++++ In details (skipped during lecture)
 * The process can be iterated, yielding a structure extending several ones:
 
         VeryRichStructure extends Structure₁, Structure₂, Structure₃ where
@@ -80,9 +80,16 @@ but we used it for a group: Lean understood that every group is a semigroup.
 +++
 Most of the above points are related to *classes* and *class type inference*.
 
-1. Discuss what classes are, what inference is, what `[` and `]` are, what instances are
-1. Discuss `#synth` 
-1. Make examples of instances: beyond notation, start with `Coe` (and `CoeSort`); then go back to "every group is a monoid" and the quotcommlemma.
+Classes are special structures, for which certain terms are stored in a database. They enable `class type inference`, constructing a term of a certain class given a term of a "parent" one.
+
+The idea is that each `class` type cointains a *preferred* or a *canonical* term, declared using the keyword `instance` rather than `def`; and that this terms has been registered in the database to be accessible whenever needed.
+```quote
+Warning: Classes can have parameters, so if `G` and `H` are types, `Group G` and `Group H` are different types!
+```
+To introduce a class assumption to a lemma, to a definition, or to a new class, we use `[` and `]` and typically *we don't name it*: because this should be useless.
+
+To check what is the canonical term of a certain class type, use the command `#synth`, and to construct it use `inferInstance` (in term mode) or `infer_instance` (in tactic mode).
+
 ### More about groups
 
 +++ Interlude: `Mathlib`
@@ -98,7 +105,7 @@ As a rule of thumb:
 #### Subgroups
 The definition of subgroups is slightly different from that of a group, it relies on `Sets`:
 ```
-structure Subgroup (G : Type* u_3*) [Group G] extends Submonoid G : Type*
+structure Subgroup (G : Type*) [Group G] extends Submonoid G : Type*
 
 A subgroup of a group G is a subset containing 1, closed under multiplication and closed under multiplicative inverse.
 
@@ -115,13 +122,11 @@ notion: the perspective is that, to each group `G`, we attach a new *type* `Subg
 represent the different subgroups of `G`, seen as an underlying set and a collection of proofs that
 the set is multiplicatively closed (a "mixin").
 
-1. Another example of instance: every subgroup is a group
-1. Coe, norm_num e norm_cast
+`⌘`
 
-#### [Quotients](https://github.com/faenuccio-teaching/M2Lyon2425/blob/afcb059590adbe169d3e03ce50277ef920a9b567/M2Lyon2425/Groups2_solutions.lean#L465)
+#### Quotients and Morphisms
+See [here](https://github.com/faenuccio-teaching/M2Lyon2425/blob/afcb059590adbe169d3e03ce50277ef920a9b567/M2Lyon2425/Groups2_solutions.lean#L465)
 
-
-#### Morphisms
 ## Rings
 
 ** Borrow from** https://github.com/faenuccio-teaching/GradCourse25/blob/master/GradCourse25/3_AlgebraicStructures_lecture.pdf **adding ring and grind**
