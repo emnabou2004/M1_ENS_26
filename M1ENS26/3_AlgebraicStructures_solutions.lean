@@ -37,7 +37,7 @@ lemma unit_surj (A B : Type*) [CommRing A] [CommRing B] {f : A →+* B} (a : Aˣ
 
 -- `⌘`
 
-section Groups
+noncomputable section Groups
 
 -- ### A wrong way to define structures
 
@@ -272,14 +272,51 @@ example (G₁ : Type) [CommGroup G₁] (f : G →* G₁) : ∀ x y : G, x * y = 
   intro x y h
   rw [← map_mul, h, map_one]
 
-example (A : Type) [AddGroup A] (f : G →* A) : ∀ x y : G, x * y = 1 → (f x) * (f y) = 1 := by sorry
-
-open Function in
-example (A : Type*) [AddGroup A] (f : A →+ ℤ) (hf : 1 ∈ f.range) : Surjective f := sorry
+example (A : Type*) [AddGroup A] (f : G →* A) : ∀ x y : G, x * y = 1 → (f x) * (f y) = 1 := by sorry
 
 
+open Function
 
-open Function in
+
+
+/- Class type inference makes Lean understand that since `H` is
+commutative, `N` is normal and thus `H ⧸ N` is a group. -/
+example (H : Type*) [CommGroup H] (f : H →* G) (N : Subgroup H) (hN : N ≤ f.ker) :
+    {g : H ⧸ N →* G // ∀ h : H, f h = g h } := by
+  set g := QuotientGroup.lift N f hN with hg -- `set ... with`!
+  use g
+  intro h
+  rw [hg]
+  simp only [QuotientGroup.lift_mk]
+
+
+
+example (A : Type*) [AddGroup A] (f : A →+ ℤ) (hf : 1 ∈ f.range) : Surjective f := by
+  rcases hf with ⟨b, hb⟩
+  intro m
+  use m • b
+  simp [map_zsmul, hb]
+
+
+end Groups
+
+section Rings
+
+end Rings
+
+noncomputable section Exercises
+
+open Function
+
+lemma WrongGroup.mul_inv_cancel {α : WrongGroup} (x : α.carrier) :
+    α.mul x (α.inv x) = α.one := by
+  rw [← α.inv_mul_cancel (α.inv x), α.inv_eq_of_mul _ _ (α.inv_mul_cancel x)]
+
+/- ¶ Exercice
+Why is the following example broken? Fix its statement, then prove it. -/
+example (G : Type*) [Group G] (H₁ H₂ : Subgroup G) : Subgroup (H₁ ∩ H₂) := sorry
+
+
 example (A B : Type*) [AddGroup A] [AddGroup B] (f : A →+ B) : Injective f ↔ f.ker = ⊥ := by
     -- (f.ker_eq_bot_iff).symm
   refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
@@ -293,22 +330,43 @@ example (A B : Type*) [AddGroup A] [AddGroup B] (f : A →+ B) : Injective f ↔
     apply h (x - y)
     rwa [AddMonoidHom.mem_ker, map_sub]
 
-end Groups
+-- Prove that the homomorphisms between commutative monoids have a structure of commutative monoid.
+example (M N : Type*) [CommMonoid M] [CommMonoid N] : CommMonoid (M →* N) where
+  mul := by
+    intro f g
+    fconstructor
+    · use fun x ↦ f x * g x
+      simp
+    · intro x y
+      simp [map_mul, mul_assoc _ (f y) _, mul_comm (f y) _, ← mul_assoc]
+  mul_assoc := by
+    intro f g h
+    ext x
+    simp only [MonoidHom.mul_apply]
+    exact mul_assoc ..
+  one := by
+    fconstructor
+    · use fun _ ↦ 1
+    · intro x y
+      simp
+  one_mul := by simp
+  mul_one := by simp
+  mul_comm := by
+    intro f g
+    ext x
+    simp only [MonoidHom.mul_apply]
+    exact mul_comm ..
 
-section Rings
-
-end Rings
-
-section Exercises
-
-lemma WrongGroup.mul_inv_cancel {α : WrongGroup} (x : α.carrier) :
-    α.mul x (α.inv x) = α.one := by
-  rw [← α.inv_mul_cancel (α.inv x), α.inv_eq_of_mul _ _ (α.inv_mul_cancel x)]
-
-/- ¶ Exercice
-Why is the following example broken? Fix its statement, then prove it. -/
-example (G : Type*) [Group G] (H₁ H₂ : Subgroup G) : Subgroup (H₁ ∩ H₂) := sorry
-
+/- Prove that an injective and surjective group homomorphism is an isomorphism:
+but what's an isomorphism? -/
+def IsoOfBijective (G H : Type*) [Group G] [Group H] (f : G →* H)
+    (h_surj : Surjective f) (h_inj : Injective f) : G ≃* H := by
+  set g : G ≃ H := by
+    apply Equiv.ofBijective f
+    simp [Bijective, h_inj, h_surj] with hg
+  use g
+  intro x y
+  simp [hg]
 
 example (A : Type*) [AddCommGroup A] (N : AddSubgroup A) [N.Normal] (x y : A) :
     (x : A ⧸ N) = (y : A ⧸ N) ↔ y - x ∈ N := sorry
@@ -355,12 +413,31 @@ example (A : Type*) [AddGroup A] (H K : AddSubgroup A) :
 /- ¶ Exercice
 State and that the kernel of every group homomorphism is normal: even if you find a one-line proof,
 try to produce the whole term. -/
-example (G₁ G₂ : Type*) [Group G₁] [Group G₂] (f : G₁ →* G₂) : (f.ker).Normal := sorry
+example (G G₁ : Type*) [Group G] [Group G₁] (f : G →* G₁) : (f.ker).Normal := by
+  -- exact MonoidHom.normal_ker f
+  -- infer_instance
+  constructor
+  intro x hy y
+  simp only [f.mem_ker, map_mul, map_inv, conj_eq_one_iff]
+  rwa [← f.mem_ker]
 
 /- ¶ Exercice
 State and that a group is commutative if and only if the map `x ↦ x⁻¹` is a group homomorphism:
-even if you find a one-line proof, try to produce the whole term. To get `⁻¹`, type `\-1`. -/
-example
+even if you find a one-line proof, try to produce the whole term. To get `⁻¹`, type `\-1`. It can
+be easier to split this `if and only if` statement in two declarations: are they both lemmas, both
+definitions, a lemma and a definition?. -/
+def inv_hom_of_comm (G : Type*) [CommGroup G] : G →* G where
+  toFun := (·)⁻¹
+  map_one' := by simp
+  map_mul' x y := by
+    simp [← mul_inv_rev, mul_comm]
+
+def comm_of_inv_hom (G : Type*) [Group G] (f : G →* G) (hf : ∀ x, f x = x⁻¹) :
+    CommGroup G where
+  mul_comm g h := by
+    have h1 := hf (g * h)
+    rwa [mul_inv_rev, map_mul, hf, hf, inv_mul_eq_iff_eq_mul, ← mul_assoc, eq_mul_inv_iff_mul_eq,
+      eq_mul_inv_iff_mul_eq, mul_assoc, inv_mul_eq_iff_eq_mul] at h1
 
 
 end Exercises
