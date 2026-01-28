@@ -302,6 +302,80 @@ end Groups
 
 section Rings
 
+#synth Ring ℤ
+#synth CommRing ℤ
+#synth Monoid ℤ
+#synth AddMonoid ℤ
+#check CommRing.toCommMonoid
+#check CommRing.toAddCommGroupWithOne
+
+example (a b c : ℚ) : a + (b + c * 1) = a + b + c := by
+  -- rw [mul_one]
+  -- rw [← add_assoc]
+  ring
+
+#check mul_one
+#check add_assoc
+#print AddMonoid
+#print Field
+#print CommMonoid
+
+
+example (R : Type*) [CommRing R] (x y : R) : (x + y)^2 = x^2 + 2 * x * y + y^2 := by
+  ring
+  -- exact? ==> exact add_pow_two x y
+
+variable {R S : Type*} [CommRing R] [CommRing S]
+
+
+example (f : R →+* S) (r : R) : IsUnit r → IsUnit (f r) := by
+  unfold IsUnit
+  -- use r -- the arrow `↑u` is there for a reason...
+  intro h
+  -- obtain ⟨v, hv⟩ := h -- probably not enough: what does it mean `v : Rˣ`? Let's hover on it...
+  obtain ⟨⟨v, u, hvu, huv⟩, H⟩ := h
+  simp only at H
+  fconstructor
+  · use f r
+    · use (f u)
+    · rw [← map_mul, ← H, hvu, map_one]
+    · rw [← map_mul, ← H, huv, map_one]
+  · simp
+
+/- The kernel of a ring homomorphism is an ideal: -/
+def kernel_ENS (f : R →+* S) : Ideal R where
+  carrier := {r : R | f r = 0}
+  add_mem' := by
+    intro a b ha hb
+    simp only [Set.mem_setOf_eq, map_add]
+    rw [hb, ha, zero_add]
+  zero_mem' := by
+    apply map_zero
+  smul_mem' := by
+    intro c x hx
+    simp only [smul_eq_mul, Set.mem_setOf_eq, map_mul]
+    rw [hx, mul_zero]
+
+
+open RingHom Ideal.Quotient in
+lemma span_equotient {I : Ideal R} (S : Set (R ⧸ I)) (x : R) (hx : ⟦x⟧ ∈ Ideal.span S) :
+    x ∈ I + Ideal.span (Quotient.out '' S) := by
+  rw [Ideal.span] at hx
+  obtain ⟨n, ι', g', hιx⟩ := (Submodule.mem_span_set' (M := R ⧸ I)).mp hx
+  -- obtain ⟨n, ι', g', hιx⟩ := (@Submodule.mem_span_set' _ (R ⧸ I) _ _ _ _ _).mp hx
+  set ι : Fin n → R := fun i ↦ Quotient.out (ι' i) with hι
+  set g : Fin n → Quotient.out '' S := fun i ↦ ⟨Quotient.out (g' i).val, by simp⟩ with hg
+  set y : Ideal.span (Quotient.out '' S) := by
+    use ∑ i, ι i • (g i)
+    exact Submodule.mem_span_set'.mpr ⟨n, ι, g, rfl⟩ with hy
+  replace hιx : ∑ i, ι' i * (g' i) = (mk I) x := by
+    exact hιx
+  have hxy : x - y ∈ I := by --restate with `mk I x` instead of `⟦x⟧`
+    simp [← mk_eq_mk_iff_sub_mem, hy, ← hιx, hι, hg]
+  rw [Submodule.add_eq_sup, Submodule.mem_sup]
+  exact ⟨x - y, hxy, y, SetLike.coe_mem .., by abel⟩
+
+
 end Rings
 
 noncomputable section Exercises
@@ -410,7 +484,7 @@ example (A : Type*) [AddGroup A] (H K : AddSubgroup A) :
   exact ⟨hH.conj_mem n hnH g, hK.conj_mem n hnK g⟩
 
 
-/- ¶ Exercice
+/- **¶ Exercice**
 State and that the kernel of every group homomorphism is normal: even if you find a one-line proof,
 try to produce the whole term. -/
 example (G G₁ : Type*) [Group G] [Group G₁] (f : G →* G₁) : (f.ker).Normal := by
@@ -421,7 +495,7 @@ example (G G₁ : Type*) [Group G] [Group G₁] (f : G →* G₁) : (f.ker).Norm
   simp only [f.mem_ker, map_mul, map_inv, conj_eq_one_iff]
   rwa [← f.mem_ker]
 
-/- ¶ Exercice
+/- **¶ Exercice**
 State and that a group is commutative if and only if the map `x ↦ x⁻¹` is a group homomorphism:
 even if you find a one-line proof, try to produce the whole term. To get `⁻¹`, type `\-1`. It can
 be easier to split this `if and only if` statement in two declarations: are they both lemmas, both
@@ -438,6 +512,158 @@ def comm_of_inv_hom (G : Type*) [Group G] (f : G →* G) (hf : ∀ x, f x = x⁻
     have h1 := hf (g * h)
     rwa [mul_inv_rev, map_mul, hf, hf, inv_mul_eq_iff_eq_mul, ← mul_assoc, eq_mul_inv_iff_mul_eq,
       eq_mul_inv_iff_mul_eq, mul_assoc, inv_mul_eq_iff_eq_mul] at h1
+
+open Subgroup in
+-- **¶ Exercice**
+example (G H : Type*) [Group G] [Group H] (φ : G →* H) (S T : Subgroup G) (hST : S ≤ T) :
+    map φ S ≤ map φ T := by
+  intro x hx
+  rw [mem_map] at * -- Lean does not need this line
+  rcases hx with ⟨y, hy, rfl⟩
+  use y, hST hy
+
+open Subgroup in
+-- **¶ Exercice**
+example (G H K : Type*) [Group G] [Group H] [Group K] (φ : G →* H) (ψ : H →* K) (S : Subgroup G) :
+    map (ψ.comp φ) S = map ψ (S.map φ) := by
+  ext x
+  simp only [mem_map]
+  constructor
+  · rintro ⟨y, y_in, hy⟩
+    exact ⟨φ y, ⟨y, y_in, rfl⟩, hy⟩
+  · rintro ⟨y, ⟨z, z_in, hz⟩, hy⟩
+    use z, z_in
+    simp only [MonoidHom.coe_comp, comp_apply]
+    rw [hz, hy]
+
+open Subgroup in
+/- **¶ Exercice**
+For the next exercise, you might want to use the following results from the library:
+`theorem Nat.card_eq_one_iff_exists : Nat.card α = 1 ↔ ∃ x : α, ∀ y : α, y = x := by ...`
+as well as `eq_bot_iff_forall`, whose content you might guess... -/
+lemma eq_bot_iff_card (G : Type*) [Group G] {A : Subgroup G} :
+    A = ⊥ ↔ Nat.card A = 1 := by
+  rw [Nat.card_eq_one_iff_exists]
+  constructor
+  · intro h
+    use (1 : A)
+    simp [h]
+  · intro H
+    obtain ⟨x, hx⟩ := H
+    rw [eq_bot_iff_forall]
+    have hh := hx 1
+    rw [← hh] at hx
+    intro y hy
+    specialize hx ⟨y, hy⟩
+    simp only [mk_eq_one] at hx
+    exact hx
+
+
+/- **¶ Exercice**
+State and prove that the image of an ideal through a surjective ring homomorphism is an ideal. -/
+def image_ideal {R S : Type*} [CommRing R] [CommRing S] (f : R →+* S) (I : Ideal R)
+    (hf : Surjective f) : Ideal S where
+  carrier := f.1 '' I
+  add_mem' := by
+    intro x y hx hy
+    obtain ⟨a, ha_mem, hax⟩ := hx
+    obtain ⟨b, hb_mem, hby⟩ := hy
+    simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, Set.mem_image, SetLike.mem_coe]
+    use a + b
+    constructor
+    · apply I.add_mem
+      · exact ha_mem
+      · exact hb_mem
+    · rw [map_add, ← hax, ← hby]
+      simp
+  zero_mem' := by
+    simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, Set.mem_image, SetLike.mem_coe]
+    use 0
+    constructor
+    · apply I.zero_mem
+    apply map_zero
+  smul_mem' := by
+    intro s x hx
+    obtain ⟨a, ha_mem, hax⟩ := hx
+    obtain ⟨r, hr⟩ := hf s
+    simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, smul_eq_mul, Set.mem_image,
+      SetLike.mem_coe]
+    use r * a
+    constructor
+    · apply I.mul_mem_left
+      exact ha_mem
+    · rw [map_mul, hr, ← hax]
+      rfl
+
+
+
+-- Show that if the ring homomorphism is injective, its kernel is `⊥`
+-- **Exercise**
+example {R S : Type*} [CommRing R] [CommRing S] (f : R →+* S) (hf : Injective f) :
+    RingHom.ker f = ⊥ := by
+  ext x
+  constructor
+  · intro hx
+    simp only [Ideal.mem_bot]
+    rw [Injective] at hf
+    apply hf
+    rw [hx, map_zero]
+  · intro hx
+    rw [Ideal.mem_bot] at hx
+    rw [hx]
+    exact (RingHom.ker f).zero_mem
+
+
+-- **Exercise**
+example {R S : Type*} [CommRing R] [CommRing S] (f : R ≃+* S) (r : R) :
+    IsUnit (f r) → IsUnit r := by
+  intro h
+  obtain ⟨⟨v, u, hvu, huv⟩, H⟩ := h
+  simp only at H
+  set x := f.toEquiv.invFun u with hx
+  fconstructor
+  · use r
+    · use x
+    · apply_fun f
+      rw [map_mul]
+      rw [← H, hx]
+      simp only [RingEquiv.toEquiv_eq_coe, Equiv.invFun_as_coe, EquivLike.apply_coe_symm_apply,
+        map_one]
+      exact hvu
+    · apply_fun f
+      rw [map_mul]
+      rw [← H, hx]
+      simp only [RingEquiv.toEquiv_eq_coe, Equiv.invFun_as_coe, EquivLike.apply_coe_symm_apply,
+        map_one]
+      exact huv
+  · simp only
+
+
+-- **Exercise**
+example {R S : Type*} [CommRing R] [CommRing S] (I : Ideal R) (r : R) :
+    r ∈ I → IsUnit r → I = ⊤ := by
+  intro h_mem h
+  obtain ⟨⟨u, v, huv, hvu⟩, H⟩ := h
+  simp only at H
+  ext x
+  constructor
+  · intro hx
+    simp only [Submodule.mem_top]
+  · intro hx
+    set y := r * x with hy
+    have : y ∈ I := by
+      rw [hy]
+      rw [mul_comm]
+      apply I.mul_mem_left
+      exact h_mem
+    apply_fun (fun t ↦ v • t) at hy
+    rw [← H] at hy
+    rw [smul_eq_mul, smul_eq_mul, ← mul_assoc _ u, hvu, one_mul] at hy
+    rw [← hy]
+    -- rw [← smul_eq_mul]
+    -- apply I.smul_mem
+    apply I.mul_mem_left
+    exact this
 
 
 end Exercises
