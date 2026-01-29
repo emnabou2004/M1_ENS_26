@@ -75,8 +75,10 @@ and to use `0` and `+` for `A : AddGroup` or `A : AddCommGroup`.
     mul_assoc {G : Type*} [Semigroup G] (a b c : G) : a * b * c = a * (b * c)
     ```
 but we used it for a group: Lean understood that every group is a semigroup.
-1. The use of `extend` to define `Group`, yielding an "enriched" `DivInvMonoid`.
-1. Some redundancy in the definition of `Group` (of `Monoid`, actually) concerning `npow : ℕ → M → M`.
+
+3. The use of `extend` to define `Group`, yielding an "enriched" `DivInvMonoid`.
+4. Some redundancy in the definition of `Group` (of `Monoid`, actually) concerning `npow : ℕ → M → M`.
+
 +++
 Most of the above points are related to *classes* and *class type inference*.
 
@@ -86,9 +88,11 @@ The idea is that each `class` type cointains a *preferred* or a *canonical* term
 ```quote
 Warning: Classes can have parameters, so if `G` and `H` are types, `Group G` and `Group H` are different types!
 ```
-To introduce a class assumption to a lemma, to a definition, or to a new class, we use `[` and `]` and typically *we don't name it*: because this should be useless.
+To introduce a class assumption in a lemma, in a definition, or in a new class, we use `[` and `]` and typically *we don't name it*: because this should be useless.
 
 To check what is the canonical term of a certain class type, use the command `#synth`, and to construct it use `inferInstance` (in term mode) or `infer_instance` (in tactic mode).
+
+`⌘`
 
 ### More about groups
 
@@ -100,19 +104,18 @@ You can access it on its [gitHub repo](https://github.com/leanprover-community/m
 As a rule of thumb: 
 * if something is below PhD level it is *probably* in Mathlib. Unless it is not.
 * Generality is normally overwhelming, so if you don't find something you're probably looking in the wrong place.
-* There is a naming convention for theorems (terms of `Prop`-valued types), for objects (terms in `Type*`), for properties (terms in `Prop`); together with plenty of exceptions and room for headache. Try to develop your feeling and ask for help. 
+* There is a [naming convention](https://leanprover-community.github.io/contribute/naming.html) for theorems (terms of `Prop`-valued types), for objects (terms in `Type*`), for properties (terms in `Prop`); together with plenty of exceptions and room for headache. Try to develop your feeling and ask for help. 
 +++
 #### Subgroups
 The definition of subgroups is slightly different from that of a group, it relies on `Sets`:
 ```
-structure Subgroup (G : Type*) [Group G] extends Submonoid G : Type*
-
+structure Subgroup (G : Type*) [Group G] extends Submonoid G : Type* where
     carrier : Set G
     mul_mem' {a b : G} : a ∈ self.carrier → b ∈ self.carrier → a * b ∈ self.carrier
     one_mem' : 1 ∈ self.carrier
     inv_mem' {x : G} : x ∈ self.carrier → x⁻¹ ∈ self.carrier
 ```
-We'll discuss what "sets" are next time, but for now just observe that given any type `G : Type*`, 
+We'll discuss what "sets" are next time, but for now just record that given any type `G : Type*`, 
 and any set `S : Set G`, we obtain for every `g : G` the type (of kind `Prop`) `g ∈ S`, that can be either true or false.
 
 Observe in particular, as we've discussed for monoids, that "being a subgroup" is not a `Prop`-like
@@ -122,24 +125,93 @@ the set is multiplicatively closed (a "mixin").
 
 `⌘`
 
-#### Quotients and Morphisms
-See [here](https://github.com/faenuccio-teaching/M2Lyon2425/blob/afcb059590adbe169d3e03ce50277ef920a9b567/M2Lyon2425/Groups2_solutions.lean#L465)
+#### Morphisms
+Given *monoids* `M` and `N`, a *monoid* homomorphism is a function `f : M → N` that respects the operation and the unity. There could be (at least) two ways to define this: 
 
-# Rings
+1. Declare the property `MonHom : (M → N) → Prop` as
+
+        def MonHom : (M → N) → Prop := f ↦ ( ∀ a b, f (a * b) = (f a) * (f b) ) ∧ (f 1 = 1)
+    
+and let `MonoidHom` be the subtype
+
+    MonoidHom = {f : M → N // MonHom f}
+This would mean that a monoid homomorphism is a pair `⟨f, hf : MonHom f⟩`.
+
+2. Define a new type `MonoidHom M N`, as a structure
+
+        structure MonoidHom M N where
+        | toFun : M → N
+        | map_mul : ∀ a b, toFun (a * b) = (toFun a) * (toFun b)
+        | map_one : toFun 1 = 1
+
+so that terms of `MonoidHom M N` would be *triples* ⟨f, map_mul f, map_one f⟩`.
+
+These approaches are not *very* different, the problem with the first is that to access the proofs one has to destructure `hf` to `hf.1` and `hf.2`. Imagine if there were 20 properties...
+
+
+* A **group homomorphism** is just a monoid homomorphism: the property `f (x⁻¹) = (f x)⁻¹` can be proven. But this relies on class type inference...
+  
+
+* **Take-home message**: homomorphisms between algebraic structures are structures on their own, "bundling" together the underline function and all its properties.
+
+It will be another story for continuous/differentiable/smooth functions...
+
+`⌘`
+#### Quotients
+To define quotients, we clearly need equivalence relations:
+```
+class Setoid (α : Sort u) where
+  r : α → α → Prop
+  iseqv : Equivalence r
+```
+
+Observe that `α` is a parameter, so a term in `Setoid α` is an equivalence relation on `α`. This comes with a notation `a ≈ b` (typed as `\~~`) meaning that `r a b`, *i. e.* `a,b : α` are equivalent.
+
++++ Why a class instead of a structure? Isn't this an obsession?
+It would not change much, and in many *explicit* occurrences terms of `Setoid α` occur named and in parenthesis, as in `(s : Setoid α)`. But we want automation, so as to find the *canonical* equivalence relation on `G ⧸ H` under the assumption that `H` is normal, and not having Lean asking us to choose one all the time.
++++
+
+Given `s : Setoid α` we can construct `Quotient s`: it is a type whose terms correspond to equivalence classes of `s`, yet I cannot define it because it is a **Lean primitive**.
+
+But the important things are not definitions, **it is the API**:
+* `Quotient.mk s : α → Quotient s` is the quotient map (and `Quotient.mk _ x` is denoted `⟦x⟧`, with `\[[` and `\]]`);
+* `Quotient.out : Quotient s → α` sends `x : Quotient s` to a lift
+of `x`, **using the axiom of choice**;
+* `Quotient.lift` : given `f : α → β` such that `a ≈ b → f a = f b`, the function `Quotient.lift f : Quotient s → β` satisfies `(Quotient.lift f) ∘ Quotient.mk s = f`;
+
++++ And two more esoteric ones:
+* `Quotient.rep [Encodable α] : Quotient s → α` without using the axiom of choice, provided that `α` is **encodable**, *i. e.* it is endowed with a (chosen) bijection into a subset of `ℕ` (we also need `s.r` to be decidable: for all `a, b`, either `a ≈ b` or `¬ a ≈ b`).
+* `axiom Quotient.sound {a b : α} : a ≈ b → ⟦a⟧ = ⟦b⟧`: it is (almost) an axiom.
++++
+
+In the special case of `{G : Type*}  [Group G] (H : Subgroup G)` there are two relations: `x y ↦ x * y⁻¹ ∈ H` and `x y ↦ x⁻¹ * y ∈ H` (can you understand their *signature*?), giving rise to
+* the corresponding `Quotient (QuotientGroup.leftRel H) : Type*`, denoted `G ⧸ H` (where `⧸` is `\/`, or `\quot` and not `/`);
+* the corresponding `Quotient (QuotientGroup.rightRel H) : Type*`;
+* the corresponding bare function `Quotient.mk (QuotientGroup.leftRel H) : G → G ⧸ H`;
+* the much more interesting `Quotient.mk' _ : [_ : H.Normal] → G →* G ⧸ H`.
+
+`⌘`
+## Rings
+
+From the theoretical point of view, all algebraic structures look alike: so I'll present a (slightly long) summary of what we need about rings, and then there will be plenty of examples.
+
+### Definition and basic tactics
 
 As for groups, the way to say that `R` is a ring is to type
 
     (R : Type*) [Ring R]
 
-The library is particularly rich insofar as *commutative* rings are concerned, and we're going to stick to those in our course. The tactic `ring` solves claim about basic relations in commutative rings.
+The library is particularly rich insofar as *commutative* rings are concerned, and we're going to stick to those in our course.
+
+* The tactic `ring` solves claim about basic relations in commutative rings.
+* The tactic `grind` is much more powerful (but it oten calls the axiom of choice for no good reason: we won't care): beyond what `ring` can do, it also treats inequalities, 
 
 Given what we know about groups and monoids, we can expect a commutative ring to have several "weaker" structures: typically these can be accessed through a `.toWeakStructure` projection.
 
-`⌘`
 
-+++ Morphisms and Ideals
+### Morphisms and Ideals
 
-* Morphisms work as for groups: they are simply functions respecting both structures on a ring, that of a multiplicative monoid and of an additive group: so, they're simply respecting both monoid structures, hence the notation `R →+* S` for a ring homomorphism. Of course, `≃+*` denotes ring isomorphism, so `R ≃+* S` is the **type** of all ring homomorphisms from `R` to `S`.
+* Morphisms work as for groups: they are simply functions respecting both structures on a ring, that of a multiplicative monoid and of an additive group: so, they're simply respecting both monoid structures, hence the notation `R →+* S` for a ring homomorphism. Of course, `≃+*` denotes ring isomorphism, so `R ≃+* S` is the type of all ring homomorphisms from `R` to `S`.
 
 * Ideals 
 
@@ -162,13 +234,7 @@ or
 
         I.mul_mem_right (a b : R) : a ∈ I → a * b ∈ I
 
-
 As for subgroups, the type `Ideal R` is ordered, and the ideal `{0} : Ideal R` is actually `⊥` whereas
 `R : Ideal R` is `⊤`.
 
 `⌘`
-`grind`, `ring`
-
-3. `#synth CommRing ℤ`
-4. [Units](https://github.com/faenuccio-teaching/M2Lyon2425/blob/afcb059590adbe169d3e03ce50277ef920a9b567/M2Lyon2425/Rings1_solutions.lean#L127)
-5. [Ring Homs](https://github.com/faenuccio-teaching/M2Lyon2425/blob/afcb059590adbe169d3e03ce50277ef920a9b567/M2Lyon2425/Rings1_solutions.lean#L173)
