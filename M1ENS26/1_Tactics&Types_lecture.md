@@ -32,16 +32,14 @@ This is often painful: to simplify our life, or to build more convoluted implica
 * Given a term `hq : Q` and a goal `⊢ Q`, the tactic `exact hq` closes the goal, instructing Lean to use `hq` as the sought-for term in `Q`.
 
 * `apply` is the crucial swiss-knife for *backwards reasoning*: in a situation like
+```
+  hq : Q
+  f : P → Q
+  ⊢ P
+```
+we are done because we can use `f` to reduce, or back-track, the truth of `P` to that of `Q`, that we know (it is `hq`).  
 
-`⌘`
-
-* Given an implication `P → Q`, the tactic `intro hp` introduces a term `hp : P`.
-    ```
-    hpq : P → Q
-    ⊢ Q
-    ```
-
-the tactic `apply hpq` changes the goal to `⊢ P`: it tells Lean that, granted `hpq` (or "having `hpq` at our disposal"), it suffices to construct a term in `P` to deduce a term in `Q`.
+* When wanting to prove an implication `P → Q`, the tactic `intro hp` introduces a term `hp : P`: after all, an implication *is* a function, and to define it you give yourself a "generic element in the domain".
 
 
 * If your goal is `a = a`, the tactic `rfl` closes it.
@@ -123,8 +121,9 @@ There is one kind of particular types, called *propositions*. This class is deno
 Types of kind `Prop` represent propositions (that can be either true or false). So, `(2 < 3) : Prop` and `(37 < 1) : Prop` are two *types* in this class, as is `(A finite group of order 11 is cyclic)`.
 
 +++ `True`,  `False` and `Bool`
-Fundamentally, `Prop` contains only two types:
-`True : Prop` is a type whose only term is called `trivial`. To prove `True`, you can do `exact trivial`.
+Fundamentally, `Prop` contains only two types: `True` and `False`.
+
+* `True : Prop` is a type whose only term is called `trivial`. To prove `True`, you can do `exact trivial`.
 
 * `False` has no term. Typically, you do not want to construct terms there...
 * `Bool` is a different type, that contains two *terms*: `true` and `false` (beware the capitalization!).
@@ -136,4 +135,6 @@ Fundamentally, `Prop` contains only two types:
 
 #### Key points to keep in mind
 * If `P : Prop` then either `P` has not term at all ("`P` is false"), or `P` has a unique term `hp` (`hp` is "a witness that `P` is true"; or a **proof** of `P`).
-* As well `ℕ` as `3 < -1` as `ℝℙ²` and `(a+b)² = a² + 2ab + b²` are types, although of different flavour.
+* Both `ℕ` and `3 < -1` and `ℝℙ²` and `(a+b)² = a² + 2ab + b²` are types, although of different flavour.
+
+`⌘ → Exercises`

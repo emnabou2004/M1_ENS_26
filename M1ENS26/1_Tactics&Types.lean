@@ -3,10 +3,16 @@ import Mathlib.Tactic
 variable (P Q R S : Prop)
 open Polynomial
 
+section Intro
+open Classical Set
 
 example (n : ℕ) (hn : n ≤ 3) : n ≤ 5 := by
   sorry
 
+example (X Y : Type*) [TopologicalSpace X] [TopologicalSpace Y] (y : Y) :
+    Continuous (fun x : X ↦ y) := by sorry
+
+end Intro
 -- `⌘`
 
 /- # exact, intro, apply, rfl-/
@@ -20,8 +26,6 @@ example (hP : P) : P := by
 
 example (h : P → Q) (hP : P) : Q := by
   sorry
-
--- `⌘`
 
 -- Use of the `intro` tactic
 
@@ -89,6 +93,8 @@ example : P ∨ Q → Q ∨ P := by
 example : P ∨ Q → (P → R) → (Q → R) → R := by
   sorry
 
+-- `⌘`
+
 /- Use of the `by_cases` tactic. -/
 example : R ∨ ¬ R := by
   sorry
@@ -110,7 +116,7 @@ example : (1 : ℕ) = (1 : ℝ) := by
   sorry
 
 
-example : 1 = (1 : ℚ) := by
+example : (1 : ℕ) = (1 : ℚ) := by
   sorry
 
 
@@ -129,9 +135,13 @@ example : (1 : ℚ) = (1 : ℚ[X]):= by
 #check false
 #check Bool
 
-
-
 example : True := by
+  sorry
+
+example : true = True := by
+  rfl
+
+example : true = false → False := by
   sorry
 
 -- `⌘`
