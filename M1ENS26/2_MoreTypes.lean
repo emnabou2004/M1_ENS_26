@@ -58,9 +58,7 @@ theorem Euclid_all_proof : Euclid_all := by
   sorry
 
 theorem exists_p_gt_100 (E : Euclid_forall) : ∃ p, Nat.Prime p ∧ 100 < p := by
-  specialize E 100
-  exact E
-  -- exact E 100
+  sorry
 
 
 #check (∃ n : ℕ, n ^ 2 + 37 * n < 2 ^ n)
