@@ -20,7 +20,7 @@ end Intro
 -- Use of the `exact` tactic
 
 example (hP : P) : P := by
-  sorry
+  apply hP
 
 -- Use of the `apply` tactic
 
@@ -72,7 +72,11 @@ example (α : Type) (P Q : α → Prop) (x : α) (hP : P x) (h : P = Q) : Q x :=
 
 
 example : P → Q → P ∧ Q := by
-  sorry
+  intro h1
+  intro h2
+  constructor
+  · exact h1
+  · exact h2
 
 
 example : P ∧ Q → P := by
@@ -105,6 +109,7 @@ example : R ∨ ¬ R := by
 
 #check 2
 #check ℕ
+#check Type
 #check (2 : ℤ)
 #check 2 < 3
 #check (∀ n : ℕ, ∀ x y z : ℤ, 2 < n → x ^ n + y ^ n = z ^ n → x*y*z = 0)
@@ -134,6 +139,8 @@ example : (1 : ℚ) = (1 : ℚ[X]):= by
 #check true
 #check false
 #check Bool
+
+def idn := fun(x : ℝ) ↦ x
 
 example : True := by
   sorry
